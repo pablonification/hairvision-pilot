@@ -1,7 +1,15 @@
 import { NextRequest } from "next/server"
 import { GoogleGenAI } from "@google/genai"
 import { HAIRVISION_SYSTEM_PROMPT } from "@/lib/gemini/prompts"
-import type { PhotoAngle, AnalysisResult, GeometricAnalysis, HairstyleRecommendation } from "@/types"
+import type {
+  PhotoAngle,
+  AnalysisResult,
+  GeometricAnalysis,
+  HairstyleRecommendation,
+  StyleCompatibility,
+  FaceProportions,
+  HairAnalysis,
+} from "@/types"
 
 interface AnalyzeRequest {
   sessionId: string
@@ -9,8 +17,16 @@ interface AnalyzeRequest {
 }
 
 interface GeminiAnalysisResponse {
-  geometricAnalysis: GeometricAnalysis
-  recommendations: HairstyleRecommendation[]
+  geometricAnalysis: GeometricAnalysis & {
+    faceShapeConfidencePercent?: number
+    faceProportions?: FaceProportions
+    hairAnalysis?: HairAnalysis
+  }
+  compatibilityMatrix?: StyleCompatibility[]
+  recommendations: (HairstyleRecommendation & {
+    description?: string
+    whyItWorks?: string[]
+  })[]
   visualizationPrompts: unknown[]
 }
 
@@ -131,11 +147,36 @@ export async function POST(request: NextRequest) {
           return
         }
 
+        const enrichedGeometricAnalysis: GeometricAnalysis = {
+          ...parsed.geometricAnalysis,
+          ...(parsed.geometricAnalysis.faceShapeConfidencePercent !== undefined && {
+            faceShapeConfidencePercent: parsed.geometricAnalysis.faceShapeConfidencePercent,
+          }),
+          ...(parsed.geometricAnalysis.faceProportions && {
+            faceProportions: parsed.geometricAnalysis.faceProportions,
+          }),
+          ...(parsed.geometricAnalysis.hairAnalysis && {
+            hairAnalysis: parsed.geometricAnalysis.hairAnalysis,
+          }),
+        }
+
+        const enrichedRec1: HairstyleRecommendation = {
+          ...rec1,
+          ...(rec1.description && { description: rec1.description }),
+          ...(rec1.whyItWorks && { whyItWorks: rec1.whyItWorks }),
+        }
+        const enrichedRec2: HairstyleRecommendation = {
+          ...rec2,
+          ...(rec2.description && { description: rec2.description }),
+          ...(rec2.whyItWorks && { whyItWorks: rec2.whyItWorks }),
+        }
+
         const analysisResult: AnalysisResult = {
           id: crypto.randomUUID(),
           sessionId,
-          geometricAnalysis: parsed.geometricAnalysis,
-          recommendations: [rec1, rec2],
+          geometricAnalysis: enrichedGeometricAnalysis,
+          ...(parsed.compatibilityMatrix && { compatibilityMatrix: parsed.compatibilityMatrix }),
+          recommendations: [enrichedRec1, enrichedRec2],
           createdAt: new Date(),
         }
 

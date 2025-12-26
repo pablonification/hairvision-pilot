@@ -63,68 +63,90 @@ Generate a comprehensive JSON prompt for AI image generation with:
 </Instructions>
 
 <Output_Format>
-You MUST respond with valid JSON matching this exact structure:
+You MUST respond with valid JSON matching this structure.
+ALL numeric values, scores, and descriptions MUST be derived from YOUR ACTUAL ANALYSIS of the provided photos.
+DO NOT use placeholder or example values - every field must reflect the real person in the photos.
 
 {
   "geometricAnalysis": {
-    "faceShape": "oval|round|square|diamond|heart|triangle|oblong",
-    "hairTexture": "straight|wavy|curly|coily",
-    "hairDensity": "thin|medium|thick",
-    "jawlineWidth": "description",
-    "foreheadWidth": "description", 
-    "cheekboneHeight": "description",
-    "problemAreas": ["area1", "area2"]
+    "faceShape": "<detected from photos: oval|round|square|diamond|heart|triangle|oblong>",
+    "faceShapeConfidencePercent": "<your confidence 1-100 in the face shape detection>",
+    "faceProportions": {
+      "foreheadToFaceRatioPercent": "<measured: forehead height as % of total face height>",
+      "jawToForeheadRatioPercent": "<measured: jaw width as % of forehead width>",
+      "faceLengthToWidthRatio": "<measured: face length divided by width, e.g. 1.3>",
+      "symmetryScorePercent": "<assessed: how symmetrical is the face, 1-100>",
+      "chinProminence": "<observed: recessed|balanced|prominent>",
+      "cheekboneDefinition": "<observed: subtle|moderate|pronounced>"
+    },
+    "hairAnalysis": {
+      "texture": "<observed from photos: straight|wavy|curly|coily>",
+      "textureConfidencePercent": "<your confidence 1-100 in texture detection>",
+      "density": "<observed: thin|medium|thick>",
+      "densityConfidencePercent": "<your confidence 1-100 in density detection>",
+      "growthPattern": "<describe actual cowlicks, crown direction, natural flow you see>",
+      "hairlineType": "<observed: straight|widows_peak|receding|m_shaped|rounded>",
+      "naturalPartSide": "<observed: left|right|center|none>"
+    },
+    "hairTexture": "<same as hairAnalysis.texture>",
+    "hairDensity": "<same as hairAnalysis.density>",
+    "jawlineWidth": "<describe what you see: e.g. 'Wide and angular' or 'Narrow and soft'>",
+    "foreheadWidth": "<describe what you see: e.g. 'Broad, approximately 14cm' or 'Narrow'>",
+    "cheekboneHeight": "<describe what you see: e.g. 'High and prominent' or 'Low-set'>",
+    "problemAreas": ["<list actual issues you detect: asymmetry, cowlicks, flat spots, etc.>"]
   },
+  "compatibilityMatrix": [
+    {
+      "styleName": "<actual hairstyle name suitable for this person>",
+      "matchScorePercent": "<calculated 1-100 based on how well it fits their features>",
+      "keyReasons": ["<specific reason based on THEIR face shape>", "<reason based on THEIR hair texture>", "<reason based on THEIR proportions>"],
+      "concerns": ["<potential issues for THIS person specifically>"]
+    }
+  ],
   "recommendations": [
     {
       "id": "rec_1",
-      "name": "Style Name",
-      "geometricReasoning": "Why this style works for this face shape...",
-      "suitabilityScore": 85,
+      "name": "<hairstyle name>",
+      "description": "<1-2 sentences describing this style in a way the customer understands>",
+      "geometricReasoning": "<explain WHY this style works for THIS person's specific face geometry>",
+      "whyItWorks": [
+        "<specific reason 1 referencing THEIR actual features>",
+        "<specific reason 2 referencing THEIR hair type>",
+        "<specific reason 3 about lifestyle/maintenance fit>"
+      ],
+      "suitabilityScore": "<1-100 based on geometric match>",
       "barberInstructions": {
-        "styleName": "Style Name",
+        "styleName": "<style name>",
         "sides": {
-          "clipperGuard": "1.5",
-          "fadeType": "mid_fade|low_fade|high_fade|drop_fade|taper_fade|skin_fade|burst_fade|temple_fade|null",
-          "blendingNotes": "Detailed blending instructions..."
+          "clipperGuard": "<specific guard: 0|0.5|1|1.5|2|2.5|3|etc>",
+          "fadeType": "<specific fade or null: skin_fade|low_fade|mid_fade|high_fade|drop_fade|taper_fade|burst_fade|temple_fade|null>",
+          "blendingNotes": "<detailed technique for THIS person's head shape>"
         },
         "top": {
-          "lengthCm": 7,
-          "lengthInches": 2.75,
-          "technique": "Point cutting with 45-degree elevation...",
-          "layeringNotes": "Internal layering for movement..."
+          "lengthCm": "<number>",
+          "lengthInches": "<number>",
+          "technique": "<cutting technique with specific angles>",
+          "layeringNotes": "<layering approach for THEIR hair texture>"
         },
         "back": {
-          "necklineShape": "tapered|squared|rounded|natural",
-          "clipperGuard": "1",
-          "blendingNotes": "Blend into sides seamlessly..."
+          "necklineShape": "<tapered|squared|rounded|natural>",
+          "clipperGuard": "<specific guard>",
+          "blendingNotes": "<technique for THEIR occipital bone shape>"
         },
         "texture": {
-          "techniques": ["point_cutting", "thinning_shears"],
-          "notes": "Remove bulk from sides, keep weight on top..."
+          "techniques": ["<from: point_cutting|slide_cutting|razor_cutting|thinning_shears|texturizing_shears|twist_cutting>"],
+          "notes": "<specific texturizing approach for THEIR hair>"
         },
         "styling": {
-          "products": ["Matte clay", "Sea salt spray"],
-          "applicationSteps": [
-            "Towel dry to 80% damp",
-            "Apply sea salt spray to roots",
-            "Blow dry with medium heat, directing back",
-            "Warm pea-sized clay between palms",
-            "Work through mid-lengths to ends",
-            "Define pieces with fingertips"
-          ],
-          "maintenanceTips": [
-            "Trim every 3-4 weeks",
-            "Daily styling: 5 minutes",
-            "Wash every 2-3 days"
-          ]
+          "products": ["<product types suited to THEIR hair texture>"],
+          "applicationSteps": ["<step-by-step for THIS style and THEIR hair>"],
+          "maintenanceTips": ["<realistic tips based on THEIR hair growth>"]
         }
       }
     },
     {
       "id": "rec_2",
-      "name": "Alternative Style Name",
-      ...same structure as above...
+      "...": "<same structure with DIFFERENT style recommendation>"
     }
   ],
   "visualizationPrompts": [
@@ -132,47 +154,40 @@ You MUST respond with valid JSON matching this exact structure:
       "recommendationId": "rec_1",
       "task": {
         "type": "image_to_image",
-        "strength": 0.70,
+        "strength": "<0.55-0.85 based on how different this style is from current>",
         "focusArea": "Hair and head region",
         "preserveOriginalFeatures": ["Face identity", "Skin tone", "Clothing", "Background"]
       },
       "globalContext": {
-        "sceneDescription": "Professional portrait with natural lighting",
+        "sceneDescription": "<describe the input photo's setting>",
         "lighting": {
-          "source": "Natural/artificial based on input photo",
-          "direction": "Match input photo lighting direction"
+          "source": "<observed lighting in input photo>",
+          "direction": "<observed lighting direction>"
         }
       },
       "targetModification": {
-        "hairStyle": "Style Name",
-        "keyElements": ["Element 1", "Element 2", "Element 3"]
+        "hairStyle": "<style name>",
+        "keyElements": ["<key visual element 1>", "<key visual element 2>", "<key visual element 3>"]
       },
-      "microDetails": [
-        "Hair texture detail 1",
-        "Hair flow detail 2",
-        "Styling detail 3"
-      ],
-      "negativePromptConstraints": [
-        "Style-specific constraint 1",
-        "Style-specific constraint 2",
-        "No distortion of facial features",
-        "No unnatural hair colors unless specified"
-      ]
-    },
-    {
-      "recommendationId": "rec_2",
-      ...same structure...
+      "microDetails": ["<texture detail>", "<flow detail>", "<styling detail>"],
+      "negativePromptConstraints": ["<style-specific things to avoid>", "No distortion of facial features"]
     }
   ]
 }
 
 CRITICAL RULES:
 1. Output ONLY valid JSON - no markdown, no explanation text
-2. All clipper guards must be strings: "0", "0.5", "1", "1.5", "2", etc.
-3. fadeType must be one of: skin_fade, low_fade, mid_fade, high_fade, drop_fade, taper_fade, burst_fade, temple_fade, or null
-4. techniques array must only contain: point_cutting, slide_cutting, razor_cutting, thinning_shears, texturizing_shears, twist_cutting
-5. Be EXTREMELY specific in barber instructions - a barber should be able to execute without asking questions
-6. suitabilityScore is 1-100 based on how well the style matches face geometry
+2. ALL VALUES MUST COME FROM ACTUAL PHOTO ANALYSIS - never use placeholder numbers
+3. All clipper guards must be strings: "0", "0.5", "1", "1.5", "2", etc.
+4. fadeType must be one of: skin_fade, low_fade, mid_fade, high_fade, drop_fade, taper_fade, burst_fade, temple_fade, or null
+5. techniques array must only contain: point_cutting, slide_cutting, razor_cutting, thinning_shears, texturizing_shears, twist_cutting
+6. Be EXTREMELY specific in barber instructions - a barber should be able to execute without asking questions
+7. suitabilityScore and matchScorePercent must reflect ACTUAL geometric compatibility (1-100)
+8. compatibilityMatrix MUST contain exactly 5 styles, sorted by matchScorePercent descending (highest first)
+9. Each recommendation MUST include "description" (1-2 sentences) and "whyItWorks" array (3+ specific reasons)
+10. The top 2 styles in compatibilityMatrix should match the 2 detailed recommendations
+11. Confidence percentages (faceShapeConfidencePercent, textureConfidencePercent, densityConfidencePercent) reflect YOUR certainty based on photo quality and visibility
+12. All descriptions in problemAreas, keyReasons, concerns, whyItWorks must reference THIS SPECIFIC PERSON's features
 </Output_Format>
 
 <Constraints>
