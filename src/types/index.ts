@@ -25,8 +25,37 @@ export type HairTexture = 'straight' | 'wavy' | 'curly' | 'coily'
 
 export type HairDensity = 'thin' | 'medium' | 'thick'
 
+export interface FaceProportions {
+  foreheadToFaceRatioPercent: number
+  jawToForeheadRatioPercent: number
+  faceLengthToWidthRatio: number
+  symmetryScorePercent: number
+  chinProminence: 'recessed' | 'balanced' | 'prominent'
+  cheekboneDefinition: 'subtle' | 'moderate' | 'pronounced'
+}
+
+export interface HairAnalysis {
+  texture: HairTexture
+  textureConfidencePercent: number
+  density: HairDensity
+  densityConfidencePercent: number
+  growthPattern: string
+  hairlineType: 'straight' | 'widows_peak' | 'receding' | 'm_shaped' | 'rounded'
+  naturalPartSide: 'left' | 'right' | 'center' | 'none'
+}
+
+export interface StyleCompatibility {
+  styleName: string
+  matchScorePercent: number
+  keyReasons: string[]
+  concerns: string[]
+}
+
 export interface GeometricAnalysis {
   faceShape: FaceShape
+  faceShapeConfidencePercent?: number
+  faceProportions?: FaceProportions
+  hairAnalysis?: HairAnalysis
   hairTexture: HairTexture
   hairDensity: HairDensity
   jawlineWidth: string
@@ -100,7 +129,9 @@ export interface BarberInstructions {
 export interface HairstyleRecommendation {
   id: string
   name: string
+  description?: string
   geometricReasoning: string
+  whyItWorks?: string[]
   barberInstructions: BarberInstructions
   suitabilityScore: number
 }
@@ -109,6 +140,7 @@ export interface AnalysisResult {
   id: string
   sessionId: string
   geometricAnalysis: GeometricAnalysis
+  compatibilityMatrix?: StyleCompatibility[]
   recommendations: [HairstyleRecommendation, HairstyleRecommendation]
   createdAt: Date
 }
@@ -162,4 +194,21 @@ export interface VisualizeResponse {
   success: boolean
   data?: VisualizationResult
   error?: string
+}
+
+export type CustomerDisplaySection =
+  | 'loading'
+  | 'scan_complete'
+  | 'profile_analysis'
+  | 'compatibility_matrix'
+  | 'recommendation_1'
+  | 'recommendation_2'
+  | 'products'
+
+export interface CustomerDisplayState {
+  sessionCode: string
+  currentSection: CustomerDisplaySection
+  analysisResult: AnalysisResult | null
+  visualizations: VisualizationResult[]
+  isConnected: boolean
 }
