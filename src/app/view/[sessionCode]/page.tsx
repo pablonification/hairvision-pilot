@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { DUMMY_ANALYSIS_RESULT } from '@/lib/dummy-data'
-import { CustomerDisplaySection } from '@/types'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase/client'
+import type { Session } from '@/lib/supabase/types'
+import { CustomerDisplaySection, AnalysisResult } from '@/types'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, ChevronLeft, Home } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Home, Loader2, WifiOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { ScanCompleteAnimation } from '@/components/customer-display/scan-complete-animation'
@@ -14,11 +16,92 @@ import { CompatibilityMatrixSection } from '@/components/customer-display/compat
 import { RecommendationDetailCard } from '@/components/customer-display/recommendation-detail-card'
 import { ProductRecommendationSection } from '@/components/customer-display/product-recommendation-section'
 
-export default function CustomerDisplayPage() {
+interface PageProps {
+  params: Promise<{ sessionCode: string }>
+}
+
+export default function CustomerDisplayPage({ params }: PageProps) {
+  const { sessionCode } = use(params)
   const router = useRouter()
 
-  const [currentSection, setCurrentSection] = useState<CustomerDisplaySection>('scan_complete')
-  const [showAnimation, setShowAnimation] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isConnected, setIsConnected] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [currentSection, setCurrentSection] = useState<CustomerDisplaySection>('loading')
+  const [showAnimation, setShowAnimation] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const isDemoMode = sessionCode.toLowerCase() === 'demo'
+
+  useEffect(() => {
+    if (isDemoMode) {
+      setAnalysisResult(DUMMY_ANALYSIS_RESULT)
+      setIsLoading(false)
+      setShowAnimation(true)
+      setCurrentSection('scan_complete')
+      return
+    }
+
+    if (!isSupabaseConfigured()) {
+      setError('Database tidak dikonfigurasi. Gunakan /view/demo untuk preview.')
+      setIsLoading(false)
+      return
+    }
+
+    const fetchSession = async () => {
+      const { data, error: fetchError } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('session_code', sessionCode.toUpperCase())
+        .single()
+
+      if (fetchError || !data) {
+        setError('Session tidak ditemukan atau sudah kadaluarsa.')
+        setIsLoading(false)
+        return
+      }
+
+      const session = data as Session
+      setAnalysisResult(session.analysis_result)
+      setCurrentSection(session.current_section)
+      setIsConnected(true)
+      setIsLoading(false)
+
+      if (session.current_section === 'scan_complete') {
+        setShowAnimation(true)
+      }
+    }
+
+    fetchSession()
+
+    const channel = supabase
+      .channel(`session:${sessionCode}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `session_code=eq.${sessionCode.toUpperCase()}`,
+        },
+        (payload) => {
+          const updated = payload.new as Session
+          setAnalysisResult(updated.analysis_result)
+          setCurrentSection(updated.current_section)
+          
+          if (updated.current_section === 'scan_complete') {
+            setShowAnimation(true)
+          }
+        }
+      )
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED')
+      })
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [sessionCode, isDemoMode])
 
   const sections: CustomerDisplaySection[] = [
     'profile_analysis',
@@ -49,8 +132,48 @@ export default function CustomerDisplayPage() {
     return ((currentIndex + 1) / sections.length) * 100
   }
 
-  const primaryRec = DUMMY_ANALYSIS_RESULT.recommendations[0]
-  const secondaryRec = DUMMY_ANALYSIS_RESULT.recommendations[1]
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-accent animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Menghubungkan ke sesi...</p>
+          <p className="text-sm text-muted-foreground/60 mt-2">Kode: {sessionCode.toUpperCase()}</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-8 h-8 text-red-500" />
+          </div>
+          <h1 className="text-xl font-semibold mb-2">Koneksi Gagal</h1>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button variant="outline" onClick={() => router.push('/')}>
+            Kembali ke Beranda
+          </Button>
+        </div>
+      </main>
+    )
+  }
+
+  if (!analysisResult) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-accent animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Menunggu hasil analisis...</p>
+        </div>
+      </main>
+    )
+  }
+
+  const primaryRec = analysisResult.recommendations[0]
+  const secondaryRec = analysisResult.recommendations[1]
   const products = primaryRec.barberInstructions.styling.products
   const instructions = primaryRec.barberInstructions.styling
 
@@ -76,8 +199,13 @@ export default function CustomerDisplayPage() {
           
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-card/50 rounded-full border border-white/5">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Live Session</span>
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                isConnected || isDemoMode ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+              )} />
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                {isDemoMode ? 'Demo Mode' : isConnected ? 'Live Session' : 'Connecting...'}
+              </span>
             </div>
           </div>
         </header>
@@ -85,14 +213,14 @@ export default function CustomerDisplayPage() {
         <div className="flex-1 flex items-center justify-center relative">
           {currentSection === 'profile_analysis' && (
             <ProfileAnalysisSection 
-              analysis={DUMMY_ANALYSIS_RESULT.geometricAnalysis} 
+              analysis={analysisResult.geometricAnalysis} 
               isActive={true} 
             />
           )}
 
           {currentSection === 'compatibility_matrix' && (
             <CompatibilityMatrixSection 
-              styles={DUMMY_ANALYSIS_RESULT.compatibilityMatrix || []} 
+              styles={analysisResult.compatibilityMatrix || []} 
               isActive={true}
             />
           )}

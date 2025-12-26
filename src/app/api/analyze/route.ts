@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server"
 import { GoogleGenAI } from "@google/genai"
 import { HAIRVISION_SYSTEM_PROMPT } from "@/lib/gemini/prompts"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client"
+import type { SessionInsert } from "@/lib/supabase/types"
 import type {
   PhotoAngle,
   AnalysisResult,
@@ -34,6 +36,15 @@ function extractBase64Data(dataUrl: string): string {
   const match = dataUrl.match(/^data:image\/\w+;base64,(.+)$/)
   if (!match?.[1]) throw new Error("Invalid data URL format")
   return match[1]
+}
+
+function generateSessionCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
 }
 
 export async function POST(request: NextRequest) {
@@ -180,7 +191,25 @@ export async function POST(request: NextRequest) {
           createdAt: new Date(),
         }
 
-        send({ type: "complete", data: analysisResult })
+        const sessionCode = generateSessionCode()
+
+        if (isSupabaseConfigured()) {
+          send({ type: "status", message: "Saving to database..." })
+
+          const insertData: SessionInsert = {
+            session_code: sessionCode,
+            analysis_result: JSON.parse(JSON.stringify(analysisResult)),
+            current_section: 'scan_complete',
+          }
+
+          const { error: dbError } = await supabase.from('sessions').insert(insertData)
+
+          if (dbError) {
+            console.error("Supabase insert error:", dbError)
+          }
+        }
+
+        send({ type: "complete", data: analysisResult, sessionCode })
         controller.close()
       } catch (error) {
         console.error("Analysis error:", error)
