@@ -1,13 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { QRCodeSVG } from "qrcode.react"
 import { Button } from "@/components/ui/button"
 import { RecommendationCard } from "@/components/result/recommendation-card"
-import { Share2, Home, Download, User, Sparkles, Loader2 } from "lucide-react"
-import type { PhotoSession, AnalysisResult, VisualizeResponse } from "@/types"
+import { Share2, Home, Download, User, Sparkles, Loader2, Monitor, ChevronLeft, ChevronRight, Copy, Check, ExternalLink } from "lucide-react"
+import { cn } from "@/lib/utils"
+import type { PhotoSession, AnalysisResult, VisualizeResponse, CustomerDisplaySection } from "@/types"
+import type { CostBreakdown } from "@/lib/gemini/pricing"
 
 type LoadingState = "loading" | "analyzing" | "visualizing" | "done" | "error"
 
@@ -18,8 +21,18 @@ interface StreamEvent {
   totalChars?: number
   preview?: string
   data?: AnalysisResult
+  sessionCode?: string
+  cost?: CostBreakdown
   error?: string
 }
+
+const SECTIONS: { id: CustomerDisplaySection; label: string }[] = [
+  { id: "profile_analysis", label: "Profil" },
+  { id: "compatibility_matrix", label: "Matrix" },
+  { id: "recommendation_1", label: "Rekomendasi 1" },
+  { id: "recommendation_2", label: "Rekomendasi 2" },
+  { id: "products", label: "Produk" },
+]
 
 export default function ResultPage() {
   const router = useRouter()
@@ -30,6 +43,56 @@ export default function ResultPage() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [visualizedImage, setVisualizedImage] = useState<string | null>(null)
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null)
+  const [sessionCode, setSessionCode] = useState<string | null>(null)
+  const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | null>(null)
+  const [currentSection, setCurrentSection] = useState<CustomerDisplaySection>("profile_analysis")
+  const [copied, setCopied] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  const updateRemoteSection = useCallback(async (section: CustomerDisplaySection) => {
+    if (!sessionCode) return
+
+    setIsUpdating(true)
+    try {
+      await fetch(`/api/session/${sessionCode}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_section: section }),
+      })
+    } catch (err) {
+      console.error("Failed to update remote section:", err)
+    } finally {
+      setIsUpdating(false)
+    }
+  }, [sessionCode])
+
+  const navigate = useCallback((direction: "prev" | "next") => {
+    const currentIndex = SECTIONS.findIndex((s) => s.id === currentSection)
+    let newIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1
+    newIndex = Math.max(0, Math.min(SECTIONS.length - 1, newIndex))
+    const newSection = SECTIONS[newIndex]?.id
+    if (newSection && newSection !== currentSection) {
+      setCurrentSection(newSection)
+      updateRemoteSection(newSection)
+    }
+  }, [currentSection, updateRemoteSection])
+
+  const goToSection = useCallback((section: CustomerDisplaySection) => {
+    setCurrentSection(section)
+    updateRemoteSection(section)
+  }, [updateRemoteSection])
+
+  const copySessionCode = () => {
+    if (!sessionCode) return
+    navigator.clipboard.writeText(sessionCode)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const getViewUrl = () => {
+    if (typeof window === "undefined" || !sessionCode) return ""
+    return `${window.location.origin}/view/${sessionCode}`
+  }
 
   useEffect(() => {
     const sessionData = sessionStorage.getItem("hairvision_session")
@@ -101,6 +164,12 @@ export default function ResultPage() {
                   setStatusMessage(`Receiving data... (${event.totalChars} chars)`)
                 } else if (event.type === "complete" && event.data) {
                   setAnalysis(event.data)
+                  if (event.sessionCode) {
+                    setSessionCode(event.sessionCode)
+                  }
+                  if (event.cost) {
+                    setCostBreakdown(event.cost)
+                  }
                   if (photos.front) {
                     await generateVisualization(event.data, photos.front)
                   } else {
@@ -230,8 +299,12 @@ STYLING: ${bi.styling.products.join(", ")}
 ${bi.styling.applicationSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
   }
 
+  const currentIndex = SECTIONS.findIndex((s) => s.id === currentSection)
+  const canGoPrev = currentIndex > 0
+  const canGoNext = currentIndex < SECTIONS.length - 1
+
   return (
-    <div className="min-h-screen bg-background pb-24 font-sans relative">
+    <div className="min-h-screen bg-background pb-48 font-sans relative">
       <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none" />
 
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-white/5 px-6 py-4 flex justify-between items-center">
@@ -246,6 +319,65 @@ ${bi.styling.applicationSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
       </header>
 
       <main className="px-6 py-8 space-y-8 max-w-lg mx-auto">
+        {sessionCode && (
+          <div className="bg-card border border-accent/20 rounded-xl p-6 space-y-4">
+            <div className="flex items-center gap-2 text-accent">
+              <Monitor className="w-5 h-5" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Customer Display</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex-1 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="bg-background px-4 py-2 rounded-lg border border-white/10 font-mono text-2xl font-bold tracking-[0.3em] text-white">
+                    {sessionCode}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={copySessionCode}
+                    className="text-muted-foreground hover:text-white"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Buka di tablet customer atau scan QR
+                </p>
+                <a
+                  href={getViewUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Buka di tab baru
+                </a>
+              </div>
+
+              <div className="bg-white p-2 rounded-lg">
+                <QRCodeSVG
+                  value={getViewUrl()}
+                  size={80}
+                  level="M"
+                  bgColor="#ffffff"
+                  fgColor="#0d0d0d"
+                />
+              </div>
+            </div>
+
+            {costBreakdown && (
+              <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Biaya Analisis:</span>
+                <span className="text-accent font-medium">
+                  Rp {costBreakdown.totalCostIdr.toLocaleString("id-ID")} 
+                  <span className="text-muted-foreground ml-1">(${costBreakdown.totalCostUsd.toFixed(4)})</span>
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-card border border-border rounded p-4 flex flex-col items-center justify-center text-center space-y-2">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Face Shape</span>
@@ -312,6 +444,55 @@ ${bi.styling.applicationSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
           </div>
         </div>
       </main>
+
+      {sessionCode && (
+        <div className="fixed bottom-20 left-0 w-full bg-background/95 backdrop-blur border-t border-white/10 px-4 py-4 z-40">
+          <div className="max-w-lg mx-auto">
+            <div className="flex items-center gap-2 mb-3">
+              <Monitor className="w-4 h-4 text-accent" />
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">Kontrol Display Customer</span>
+              {isUpdating && <Loader2 className="w-3 h-3 text-accent animate-spin ml-auto" />}
+            </div>
+            
+            <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
+              {SECTIONS.map((section, idx) => (
+                <button
+                  key={section.id}
+                  onClick={() => goToSection(section.id)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
+                    currentSection === section.id
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-card border border-white/10 text-muted-foreground hover:text-white hover:border-white/20"
+                  )}
+                >
+                  {idx + 1}. {section.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={!canGoPrev || isUpdating}
+                onClick={() => navigate("prev")}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Sebelumnya
+              </Button>
+              <Button
+                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+                disabled={!canGoNext || isUpdating}
+                onClick={() => navigate("next")}
+              >
+                Selanjutnya
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur border-t border-white/10 p-4 z-40">
         <Button className="w-full shadow-[0_0_20px_rgba(201,162,39,0.2)]" size="lg">
