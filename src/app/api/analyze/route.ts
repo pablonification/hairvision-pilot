@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server"
 import { GoogleGenAI } from "@google/genai"
 import { HAIRVISION_SYSTEM_PROMPT } from "@/lib/gemini/prompts"
+import { calculateAnalysisCost, type CostBreakdown, type TokenUsage } from "@/lib/gemini/pricing"
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client"
 import type { SessionInsert } from "@/lib/supabase/types"
 import type {
@@ -123,11 +124,23 @@ export async function POST(request: NextRequest) {
 
         let fullText = ""
         let chunkCount = 0
+        let tokenUsage: TokenUsage | null = null
 
         for await (const chunk of response) {
           const text = chunk.text ?? ""
           fullText += text
           chunkCount++
+
+          if (chunk.usageMetadata) {
+            tokenUsage = {
+              promptTokens: chunk.usageMetadata.promptTokenCount ?? 0,
+              candidatesTokens: chunk.usageMetadata.candidatesTokenCount ?? 0,
+              totalTokens: chunk.usageMetadata.totalTokenCount ?? 0,
+              ...(chunk.usageMetadata.cachedContentTokenCount !== undefined && {
+                cachedTokens: chunk.usageMetadata.cachedContentTokenCount,
+              }),
+            }
+          }
 
           const preview = fullText.length > 80 ? fullText.slice(-80) : fullText
           send({
@@ -135,6 +148,15 @@ export async function POST(request: NextRequest) {
             chunkNum: chunkCount,
             totalChars: fullText.length,
             preview: preview.replace(/\n/g, " "),
+          })
+        }
+
+        let costBreakdown: CostBreakdown | null = null
+        if (tokenUsage) {
+          costBreakdown = calculateAnalysisCost(tokenUsage)
+          send({ 
+            type: "status", 
+            message: `Token usage: ${tokenUsage.promptTokens} input, ${tokenUsage.candidatesTokens} output. Cost: Rp ${costBreakdown.totalCostIdr}` 
           })
         }
 
@@ -199,6 +221,7 @@ export async function POST(request: NextRequest) {
           const insertData: SessionInsert = {
             session_code: sessionCode,
             analysis_result: JSON.parse(JSON.stringify(analysisResult)),
+            ...(costBreakdown && { cost_breakdown: JSON.parse(JSON.stringify(costBreakdown)) }),
             current_section: 'scan_complete',
           }
 
@@ -209,7 +232,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        send({ type: "complete", data: analysisResult, sessionCode })
+        send({ 
+          type: "complete", 
+          data: analysisResult, 
+          sessionCode,
+          ...(costBreakdown && { cost: costBreakdown }),
+        })
         controller.close()
       } catch (error) {
         console.error("Analysis error:", error)

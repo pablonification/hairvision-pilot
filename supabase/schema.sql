@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_code VARCHAR(6) UNIQUE NOT NULL,
   analysis_result JSONB,
+  cost_breakdown JSONB,
   current_section VARCHAR(50) DEFAULT 'loading',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
