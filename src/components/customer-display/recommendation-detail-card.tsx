@@ -33,30 +33,30 @@ export function RecommendationDetailCard({ recommendation, isActive, rank, visua
       "w-full h-full flex flex-col items-center transition-all duration-700",
       isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
     )}>
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 mb-4">
+      <div className="text-center mb-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 mb-2">
           <Star className="w-4 h-4 text-accent fill-accent" />
-          <span className="text-sm font-medium text-accent uppercase tracking-widest">
+          <span className="text-xs font-medium text-accent uppercase tracking-widest">
             Rekomendasi #{rank}
           </span>
         </div>
-        <h2 className="text-4xl md:text-6xl font-serif text-gold-gradient mb-4">
+        <h2 className="text-3xl md:text-5xl font-serif text-gold-gradient mb-2">
           {recommendation.name}
         </h2>
-        <div className="flex items-center justify-center gap-3">
-          <span className="text-5xl font-bold text-foreground">
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-4xl font-bold text-foreground">
             <CountUp value={recommendation.suitabilityScore} trigger={showContent} />
           </span>
-          <span className="text-lg text-muted-foreground self-end mb-2">Match</span>
+          <span className="text-base text-muted-foreground self-end mb-1">Match</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl flex-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full max-w-6xl flex-1">
         <div className={cn(
-          "space-y-6 transition-all duration-700 delay-200",
+          "space-y-4 transition-all duration-700 delay-200",
           showContent ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
         )}>
-          <div className="aspect-[4/5] rounded-2xl bg-gradient-to-br from-card to-background border border-accent/10 relative overflow-hidden group">
+          <div className="aspect-[4/5] max-h-[50vh] rounded-2xl bg-gradient-to-br from-card to-background border border-accent/10 relative overflow-hidden group">
             {visualizationUrl ? (
               <>
                 <Image
@@ -97,24 +97,24 @@ export function RecommendationDetailCard({ recommendation, isActive, rank, visua
         </div>
 
         <div className={cn(
-          "space-y-6 flex flex-col justify-center transition-all duration-700 delay-400",
+          "space-y-3 flex flex-col justify-center transition-all duration-700 delay-400",
           showContent ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
         )}>
-          <Card className="p-8 bg-card/40 border-accent/10 backdrop-blur-sm">
-            <h3 className="text-xl font-serif text-accent mb-6 flex items-center gap-3">
-              <Check className="w-6 h-6" />
+          <Card className="p-5 bg-card/40 border-accent/10 backdrop-blur-sm">
+            <h3 className="text-lg font-serif text-accent mb-3 flex items-center gap-2">
+              <Check className="w-5 h-5" />
               Mengapa cocok untuk Anda
             </h3>
             
-            <div className="space-y-4">
+            <div className="space-y-2">
               {recommendation.whyItWorks?.map((reason, idx) => (
                 <div 
                   key={idx} 
-                  className="flex gap-4 items-start group"
+                  className="flex gap-3 items-start group"
                   style={{ transitionDelay: `${idx * 150}ms` }}
                 >
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2.5 flex-shrink-0 group-hover:scale-150 transition-transform" />
-                  <p className="text-lg text-muted-foreground leading-relaxed">
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0 group-hover:scale-150 transition-transform" />
+                  <p className="text-base text-muted-foreground leading-relaxed">
                     {reason}
                   </p>
                 </div>
@@ -122,28 +122,28 @@ export function RecommendationDetailCard({ recommendation, isActive, rank, visua
             </div>
           </Card>
 
-          <Card className="p-8 bg-card/20 border-white/5">
-            <h3 className="text-xl font-serif text-foreground mb-4 flex items-center gap-3">
-              <Info className="w-5 h-5 text-muted-foreground" />
+          <Card className="p-5 bg-card/20 border-white/5">
+            <h3 className="text-lg font-serif text-foreground mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4 text-muted-foreground" />
               Geometric Reasoning
             </h3>
-            <p className="text-muted-foreground leading-relaxed italic border-l-2 border-accent/20 pl-4">
+            <p className="text-sm text-muted-foreground leading-relaxed italic border-l-2 border-accent/20 pl-3">
               {recommendation.geometricReasoning}
             </p>
           </Card>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-accent/5 border border-accent/10 text-center">
-              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Styling</div>
-              <div className="text-xl font-serif text-accent">3-5 min</div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded-xl bg-accent/5 border border-accent/10 text-center">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Styling</div>
+              <div className="text-lg font-serif text-accent">3-5 min</div>
             </div>
-            <div className="p-4 rounded-xl bg-accent/5 border border-accent/10 text-center">
-              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Hold</div>
-              <div className="text-xl font-serif text-accent">Medium</div>
+            <div className="p-3 rounded-xl bg-accent/5 border border-accent/10 text-center">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Hold</div>
+              <div className="text-lg font-serif text-accent">Medium</div>
             </div>
-            <div className="p-4 rounded-xl bg-accent/5 border border-accent/10 text-center">
-              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Visit</div>
-              <div className="text-xl font-serif text-accent">3 wks</div>
+            <div className="p-3 rounded-xl bg-accent/5 border border-accent/10 text-center">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Visit</div>
+              <div className="text-lg font-serif text-accent">3 wks</div>
             </div>
           </div>
         </div>

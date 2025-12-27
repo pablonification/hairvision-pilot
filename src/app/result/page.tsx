@@ -27,10 +27,11 @@ interface StreamEvent {
 }
 
 const SECTIONS: { id: CustomerDisplaySection; label: string }[] = [
+  { id: "overview", label: "Overview" },
   { id: "profile_analysis", label: "Profil" },
-  { id: "compatibility_matrix", label: "Matrix" },
   { id: "recommendation_1", label: "Rekomendasi 1" },
   { id: "recommendation_2", label: "Rekomendasi 2" },
+  { id: "style_comparison", label: "Comparison" },
   { id: "products", label: "Produk" },
 ]
 
@@ -45,7 +46,7 @@ export default function ResultPage() {
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null)
   const [sessionCode, setSessionCode] = useState<string | null>(null)
   const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | null>(null)
-  const [currentSection, setCurrentSection] = useState<CustomerDisplaySection>("profile_analysis")
+  const [currentSection, setCurrentSection] = useState<CustomerDisplaySection>("overview")
   const [copied, setCopied] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 

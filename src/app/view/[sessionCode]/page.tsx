@@ -12,9 +12,10 @@ import { cn } from '@/lib/utils'
 
 import { ScanCompleteAnimation } from '@/components/customer-display/scan-complete-animation'
 import { ProfileAnalysisSection } from '@/components/customer-display/profile-analysis-section'
-import { CompatibilityMatrixSection } from '@/components/customer-display/compatibility-matrix-section'
 import { RecommendationDetailCard } from '@/components/customer-display/recommendation-detail-card'
 import { ProductRecommendationSection } from '@/components/customer-display/product-recommendation-section'
+import { OverviewSection } from '@/components/customer-display/overview-section'
+import { StyleComparisonView } from '@/components/customer-display/style-comparison-view'
 
 interface PageProps {
   params: Promise<{ sessionCode: string }>
@@ -86,7 +87,11 @@ export default function CustomerDisplayPage({ params }: PageProps) {
         },
         (payload) => {
           const updated = payload.new as Session
-          setAnalysisResult(updated.analysis_result)
+          // Only update analysisResult if it's present in the payload
+          // (PATCH might only update current_section, not the full record)
+          if (updated.analysis_result) {
+            setAnalysisResult(updated.analysis_result)
+          }
           setCurrentSection(updated.current_section)
           
           if (updated.current_section === 'scan_complete') {
@@ -104,16 +109,17 @@ export default function CustomerDisplayPage({ params }: PageProps) {
   }, [sessionCode, isDemoMode])
 
   const sections: CustomerDisplaySection[] = [
+    'overview',
     'profile_analysis',
-    'compatibility_matrix',
     'recommendation_1',
     'recommendation_2',
+    'style_comparison',
     'products'
   ]
 
   const handleAnimationComplete = () => {
     setShowAnimation(false)
-    setCurrentSection('profile_analysis')
+    setCurrentSection('overview')
   }
 
   const navigate = (direction: 'next' | 'prev') => {
@@ -188,8 +194,8 @@ export default function CustomerDisplayPage({ params }: PageProps) {
         <ScanCompleteAnimation onComplete={handleAnimationComplete} />
       )}
 
-      <div className="relative z-10 container mx-auto px-6 py-8 h-screen flex flex-col">
-        <header className="flex items-center justify-between mb-8">
+      <div className="relative z-10 container mx-auto px-6 py-4 h-screen flex flex-col">
+        <header className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-accent/10 border border-accent/20 rounded-lg flex items-center justify-center">
               <span className="font-serif font-bold text-accent text-xl">H</span>
@@ -211,17 +217,18 @@ export default function CustomerDisplayPage({ params }: PageProps) {
         </header>
 
         <div className="flex-1 flex items-center justify-center relative">
+          {currentSection === 'overview' && (
+            <OverviewSection
+              analysis={analysisResult.geometricAnalysis}
+              compatibilityMatrix={analysisResult.compatibilityMatrix || []}
+              isActive={true}
+            />
+          )}
+
           {currentSection === 'profile_analysis' && (
             <ProfileAnalysisSection 
               analysis={analysisResult.geometricAnalysis} 
               isActive={true} 
-            />
-          )}
-
-          {currentSection === 'compatibility_matrix' && (
-            <CompatibilityMatrixSection 
-              styles={analysisResult.compatibilityMatrix || []} 
-              isActive={true}
             />
           )}
 
@@ -243,6 +250,14 @@ export default function CustomerDisplayPage({ params }: PageProps) {
             />
           )}
 
+          {currentSection === 'style_comparison' && (
+            <StyleComparisonView
+              recommendations={analysisResult.recommendations}
+              {...(analysisResult.visualizations && { visualizations: analysisResult.visualizations })}
+              isActive={true}
+            />
+          )}
+
           {currentSection === 'products' && (
             <ProductRecommendationSection 
               products={products}
@@ -252,7 +267,7 @@ export default function CustomerDisplayPage({ params }: PageProps) {
           )}
         </div>
 
-        <footer className="mt-8 pt-6 border-t border-white/5">
+        <footer className="mt-4 pt-4 border-t border-white/5">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"

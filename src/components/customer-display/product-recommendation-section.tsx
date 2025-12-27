@@ -73,19 +73,19 @@ export function ProductRecommendationSection({ products, instructions, isActive 
 
   return (
     <div className={cn(
-      "w-full max-w-5xl mx-auto space-y-8 transition-all duration-700",
+      "w-full max-w-5xl mx-auto space-y-4 transition-all duration-700",
       isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
     )}>
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-serif mb-3 text-gold-gradient inline-block">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl md:text-3xl font-serif mb-2 text-gold-gradient inline-block">
           Produk Styling
         </h2>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground text-base">
           Rekomendasi produk untuk hasil maksimal
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {products.map((product, idx) => {
           const productInfo = getProductInfo(product)
           return (
@@ -97,21 +97,21 @@ export function ProductRecommendationSection({ products, instructions, isActive 
             )}
             style={{ transitionDelay: `${idx * 150}ms` }}
           >
-            <div className="aspect-[16/9] bg-accent/5 relative flex items-center justify-center overflow-hidden">
+            <div className="aspect-[16/7] bg-accent/5 relative flex items-center justify-center overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-50" />
-              <div className="w-24 h-24 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
-                <Sparkles className="w-10 h-10 text-accent opacity-70" />
+              <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                <Sparkles className="w-8 h-8 text-accent opacity-70" />
               </div>
             </div>
             
-            <div className="p-6">
-              <h3 className="text-2xl font-serif text-foreground mb-2 group-hover:text-accent transition-colors">
+            <div className="p-4">
+              <h3 className="text-xl font-serif text-foreground mb-1 group-hover:text-accent transition-colors">
                 {product}
               </h3>
-              <p className="text-muted-foreground mb-2">
+              <p className="text-sm text-muted-foreground mb-1">
                 {productInfo.description}
               </p>
-              <p className="text-sm text-accent/80 italic">
+              <p className="text-xs text-accent/80 italic">
                 {productInfo.benefit}
               </p>
             </div>
@@ -120,30 +120,30 @@ export function ProductRecommendationSection({ products, instructions, isActive 
       </div>
 
       <div className={cn(
-        "mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 transition-all duration-700 delay-500",
+        "mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-700 delay-500",
         showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}>
-        <Card className="p-8 bg-card/20 border-white/5">
-          <h3 className="text-xl font-serif text-foreground mb-6">Cara Penggunaan</h3>
-          <ul className="space-y-4">
+        <Card className="p-5 bg-card/20 border-white/5">
+          <h3 className="text-lg font-serif text-foreground mb-3">Cara Penggunaan</h3>
+          <ul className="space-y-2">
             {instructions.applicationSteps.map((step, idx) => (
-              <li key={idx} className="flex gap-4">
-                <span className="w-6 h-6 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-accent/20">
+              <li key={idx} className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-accent/20 text-accent text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5 border border-accent/20">
                   {idx + 1}
                 </span>
-                <span className="text-muted-foreground">{step}</span>
+                <span className="text-sm text-muted-foreground">{step}</span>
               </li>
             ))}
           </ul>
         </Card>
 
-        <Card className="p-8 bg-card/20 border-white/5">
-          <h3 className="text-xl font-serif text-foreground mb-6">Tips Perawatan</h3>
-          <ul className="space-y-4">
+        <Card className="p-5 bg-card/20 border-white/5">
+          <h3 className="text-lg font-serif text-foreground mb-3">Tips Perawatan</h3>
+          <ul className="space-y-2">
             {instructions.maintenanceTips.map((tip, idx) => (
-              <li key={idx} className="flex gap-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
-                <span className="text-muted-foreground">{tip}</span>
+              <li key={idx} className="flex gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 flex-shrink-0" />
+                <span className="text-sm text-muted-foreground">{tip}</span>
               </li>
             ))}
           </ul>

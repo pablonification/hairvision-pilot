@@ -14,10 +14,11 @@ interface PatchBody {
 const VALID_SECTIONS: CustomerDisplaySection[] = [
   'loading',
   'scan_complete',
+  'overview',
   'profile_analysis',
-  'compatibility_matrix',
   'recommendation_1',
   'recommendation_2',
+  'style_comparison',
   'products',
 ]
 
