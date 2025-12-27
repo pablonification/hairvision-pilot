@@ -192,5 +192,9 @@ export const DUMMY_ANALYSIS_RESULT: AnalysisResult = {
       },
     },
   ],
+  visualizations: {
+    rec_1: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&h=800&fit=crop',
+    rec_2: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600&h=800&fit=crop',
+  },
   createdAt: new Date(),
 }

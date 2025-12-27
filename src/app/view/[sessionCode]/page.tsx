@@ -230,14 +230,16 @@ export default function CustomerDisplayPage({ params }: PageProps) {
               recommendation={primaryRec} 
               isActive={true}
               rank={1}
+              visualizationUrl={analysisResult.visualizations?.[primaryRec.id]}
             />
           )}
 
-          {currentSection === 'recommendation_2' && (
+          {currentSection === 'recommendation_2' && secondaryRec && (
             <RecommendationDetailCard 
               recommendation={secondaryRec} 
               isActive={true}
               rank={2}
+              visualizationUrl={analysisResult.visualizations?.[secondaryRec.id]}
             />
           )}
 

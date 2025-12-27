@@ -142,6 +142,7 @@ export interface AnalysisResult {
   geometricAnalysis: GeometricAnalysis
   compatibilityMatrix?: StyleCompatibility[]
   recommendations: [HairstyleRecommendation, HairstyleRecommendation]
+  visualizations?: Record<string, string>
   createdAt: Date
 }
 

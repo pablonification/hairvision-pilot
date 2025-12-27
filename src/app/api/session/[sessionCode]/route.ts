@@ -6,6 +6,11 @@ interface RouteParams {
   params: Promise<{ sessionCode: string }>
 }
 
+interface PatchBody {
+  current_section?: CustomerDisplaySection
+  visualizations?: Record<string, string>
+}
+
 const VALID_SECTIONS: CustomerDisplaySection[] = [
   'loading',
   'scan_complete',
@@ -26,25 +31,53 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     )
   }
 
-  let body: { current_section: CustomerDisplaySection }
+  let body: PatchBody
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { current_section } = body
+  const { current_section, visualizations } = body
 
-  if (!current_section || !VALID_SECTIONS.includes(current_section)) {
+  if (!current_section && !visualizations) {
+    return NextResponse.json(
+      { error: 'No valid fields to update' },
+      { status: 400 }
+    )
+  }
+
+  if (current_section && !VALID_SECTIONS.includes(current_section)) {
     return NextResponse.json(
       { error: 'Invalid section', validSections: VALID_SECTIONS },
       { status: 400 }
     )
   }
 
+  const updateData: Record<string, unknown> = {}
+  if (current_section) {
+    updateData.current_section = current_section
+  }
+
+  if (visualizations) {
+    const { data: existing } = await supabase
+      .from('sessions')
+      .select('analysis_result')
+      .eq('session_code', sessionCode.toUpperCase())
+      .single()
+
+    if (existing?.analysis_result) {
+      const analysisResult = existing.analysis_result as Record<string, unknown>
+      updateData.analysis_result = {
+        ...analysisResult,
+        visualizations,
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from('sessions')
-    .update({ current_section })
+    .update(updateData)
     .eq('session_code', sessionCode.toUpperCase())
     .select('id, session_code, current_section')
     .single()

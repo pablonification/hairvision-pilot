@@ -1,19 +1,21 @@
 'use client'
 
+import Image from 'next/image'
 import { HairstyleRecommendation } from '@/types'
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { CountUp } from '@/components/ui/count-up'
 import { useEffect, useState } from 'react'
-import { Check, Info, Star } from 'lucide-react'
+import { Check, Info, Star, Sparkles } from 'lucide-react'
 
 interface RecommendationDetailCardProps {
   recommendation: HairstyleRecommendation
   isActive: boolean
   rank: number
+  visualizationUrl?: string | undefined
 }
 
-export function RecommendationDetailCard({ recommendation, isActive, rank }: RecommendationDetailCardProps) {
+export function RecommendationDetailCard({ recommendation, isActive, rank, visualizationUrl }: RecommendationDetailCardProps) {
   const [showContent, setShowContent] = useState(false)
 
   useEffect(() => {
@@ -55,20 +57,38 @@ export function RecommendationDetailCard({ recommendation, isActive, rank }: Rec
           showContent ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
         )}>
           <div className="aspect-[4/5] rounded-2xl bg-gradient-to-br from-card to-background border border-accent/10 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-[url('https://placehold.co/600x800/1a1a1a/333333?text=Generating...')] bg-cover bg-center opacity-50 mix-blend-overlay transition-transform duration-1000 group-hover:scale-105" />
-            
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
-              <div className="w-20 h-20 rounded-full border border-accent/30 flex items-center justify-center animate-[pulse_3s_infinite]">
-                <div className="w-16 h-16 rounded-full border border-accent/60 flex items-center justify-center">
-                  <Star className="w-8 h-8 text-accent" />
+            {visualizationUrl ? (
+              <>
+                <Image
+                  src={visualizationUrl}
+                  alt={`${recommendation.name} visualization`}
+                  fill
+                  className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                  unoptimized
+                />
+                <div className="absolute top-4 left-4 z-20">
+                  <div className="bg-accent text-accent-foreground text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> AI Generated
+                  </div>
                 </div>
-              </div>
-              <p className="mt-4 text-lg font-serif text-foreground/90">Visualisasi AI</p>
-            </div>
+              </>
+            ) : (
+              <>
+                <div className="absolute inset-0 bg-[url('https://placehold.co/600x800/1a1a1a/333333?text=Generating...')] bg-cover bg-center opacity-50 mix-blend-overlay transition-transform duration-1000 group-hover:scale-105" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                  <div className="w-20 h-20 rounded-full border border-accent/30 flex items-center justify-center animate-[pulse_3s_infinite]">
+                    <div className="w-16 h-16 rounded-full border border-accent/60 flex items-center justify-center">
+                      <Star className="w-8 h-8 text-accent" />
+                    </div>
+                  </div>
+                  <p className="mt-4 text-lg font-serif text-foreground/90">Visualisasi AI</p>
+                </div>
+              </>
+            )}
             
             <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
             
-            <div className="absolute bottom-6 left-6 right-6">
+            <div className="absolute bottom-6 left-6 right-6 z-10">
               <p className="text-lg text-foreground/90 font-light leading-relaxed">
                 "{recommendation.description}"
               </p>

@@ -41,7 +41,7 @@ export default function ResultPage() {
   const [debugInfo, setDebugInfo] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
-  const [visualizedImage, setVisualizedImage] = useState<string | null>(null)
+  const [visualizations, setVisualizations] = useState<Record<string, string>>({})
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null)
   const [sessionCode, setSessionCode] = useState<string | null>(null)
   const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | null>(null)
@@ -170,8 +170,8 @@ export default function ResultPage() {
                   if (event.cost) {
                     setCostBreakdown(event.cost)
                   }
-                  if (photos.front) {
-                    await generateVisualization(event.data, photos.front)
+                  if (photos.front && event.sessionCode) {
+                    await generateVisualizations(event.data, photos.front, event.sessionCode)
                   } else {
                     setLoadingState("done")
                   }
@@ -192,54 +192,72 @@ export default function ResultPage() {
       }
     }
 
-    const generateVisualization = async (analysisData: AnalysisResult, frontPhotoUrl: string) => {
+    const generateVisualizations = async (analysisData: AnalysisResult, frontPhotoUrl: string, code: string) => {
       setLoadingState("visualizing")
-      setStatusMessage("Generating hairstyle preview...")
+      const vizResults: Record<string, string> = {}
 
-      const primaryRec = analysisData.recommendations[0]
+      for (let i = 0; i < analysisData.recommendations.length; i++) {
+        const rec = analysisData.recommendations[i]
+        if (!rec) continue
+        setStatusMessage(`Generating visualization ${i + 1}/${analysisData.recommendations.length}...`)
 
-      try {
-        const vizResponse = await fetch("/api/visualize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recommendationId: primaryRec.id,
-            originalPhotoDataUrl: frontPhotoUrl,
-            originalPhotoAngle: "front",
-            prompt: {
-              task: {
-                type: "image_to_image",
-                strength: 0.7,
-                focusArea: "Hair and head region",
-                preserveOriginalFeatures: ["Face identity", "Skin tone", "Background"],
-              },
-              globalContext: {
-                sceneDescription: "Professional portrait",
-                lighting: { source: "Natural", direction: "Front" },
-              },
-              targetModification: {
-                hairStyle: primaryRec.name,
-                keyElements: [
-                  primaryRec.barberInstructions.sides.fadeType ?? "clean sides",
-                  `${primaryRec.barberInstructions.top.lengthCm}cm on top`,
-                  primaryRec.barberInstructions.back.necklineShape + " neckline",
+        try {
+          const vizResponse = await fetch("/api/visualize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recommendationId: rec.id,
+              originalPhotoDataUrl: frontPhotoUrl,
+              originalPhotoAngle: "front",
+              prompt: {
+                task: {
+                  type: "image_to_image",
+                  strength: 0.7,
+                  focusArea: "Hair and head region",
+                  preserveOriginalFeatures: ["Face identity", "Skin tone", "Background"],
+                },
+                globalContext: {
+                  sceneDescription: "Professional portrait",
+                  lighting: { source: "Natural", direction: "Front" },
+                },
+                targetModification: {
+                  hairStyle: rec.name,
+                  keyElements: [
+                    rec.barberInstructions.sides.fadeType ?? "clean sides",
+                    `${rec.barberInstructions.top.lengthCm}cm on top`,
+                    rec.barberInstructions.back.necklineShape + " neckline",
+                  ],
+                },
+                microDetails: rec.barberInstructions.styling.products,
+                negativePromptConstraints: [
+                  "No distortion of facial features",
+                  "No unnatural hair colors",
                 ],
               },
-              microDetails: primaryRec.barberInstructions.styling.products,
-              negativePromptConstraints: [
-                "No distortion of facial features",
-                "No unnatural hair colors",
-              ],
-            },
-          }),
-        })
+            }),
+          })
 
-        const vizData: VisualizeResponse = await vizResponse.json()
-        if (vizData.success && vizData.data) {
-          setVisualizedImage(vizData.data.generatedImageUrl)
+          const vizData: VisualizeResponse = await vizResponse.json()
+          if (vizData.success && vizData.data) {
+            vizResults[rec.id] = vizData.data.generatedImageUrl
+          }
+        } catch (vizError) {
+          console.error(`Visualization error for rec ${i + 1}:`, vizError)
         }
-      } catch (vizError) {
-        console.error("Visualization error:", vizError)
+      }
+
+      setVisualizations(vizResults)
+
+      if (code && Object.keys(vizResults).length > 0) {
+        try {
+          await fetch(`/api/session/${code}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ visualizations: vizResults }),
+          })
+        } catch (err) {
+          console.error("Failed to save visualizations to session:", err)
+        }
       }
 
       setLoadingState("done")
@@ -278,7 +296,7 @@ export default function ResultPage() {
 
   const { geometricAnalysis, recommendations } = analysis
   const primaryRec = recommendations[0]
-  const displayImage = visualizedImage ?? frontPhoto
+  const displayImage = visualizations[primaryRec.id] ?? frontPhoto
 
   const formatBarberScript = (rec: typeof recommendations[0]) => {
     const { barberInstructions: bi } = rec
@@ -409,11 +427,11 @@ ${bi.styling.applicationSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
           <div className="absolute bottom-6 left-6 right-6 z-20">
             <div className="flex items-center gap-2 mb-2">
               <div className="bg-accent text-accent-foreground text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> {visualizedImage ? "AI Generated" : "Original Photo"}
+                <Sparkles className="w-3 h-3" /> {displayImage !== frontPhoto ? "AI Generated" : "Original Photo"}
               </div>
             </div>
             <p className="text-white text-sm font-medium leading-snug opacity-90">
-              {visualizedImage ? `${primaryRec.name} visualization` : `Visualizing ${primaryRec.name}...`}
+              {displayImage !== frontPhoto ? `${primaryRec.name} visualization` : `Visualizing ${primaryRec.name}...`}
             </p>
           </div>
           <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
