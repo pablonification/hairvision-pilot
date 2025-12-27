@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
+import { PWAProvider } from "@/components/pwa/pwa-provider";
+import { ErrorBoundary } from "@/components/error-boundary";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -14,9 +16,27 @@ const playfair = Playfair_Display({
   weight: ["400", "600", "700"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#c9a227",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: "HairVision Pilot",
   description: "AI-Powered Hairstyle Recommendations for Barbershops",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "HairVision",
+  },
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
+  },
 };
 
 export default function RootLayout({
@@ -29,7 +49,9 @@ export default function RootLayout({
       <body
         className={`${dmSans.variable} ${playfair.variable} antialiased bg-background text-foreground min-h-screen flex flex-col`}
       >
-        {children}
+        <PWAProvider>
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </PWAProvider>
       </body>
     </html>
   );

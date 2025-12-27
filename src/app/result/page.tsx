@@ -7,7 +7,9 @@ import { useRouter } from "next/navigation"
 import { QRCodeSVG } from "qrcode.react"
 import { Button } from "@/components/ui/button"
 import { RecommendationCard } from "@/components/result/recommendation-card"
-import { Share2, Home, Download, User, Sparkles, Loader2, Monitor, ChevronLeft, ChevronRight, Copy, Check, ExternalLink } from "lucide-react"
+import { PrintBarberScript } from "@/components/result/print-barber-script"
+import { ResultPageSkeleton } from "@/components/ui/skeleton"
+import { Share2, Home, Download, User, Sparkles, Loader2, Monitor, ChevronLeft, ChevronRight, Copy, Check, ExternalLink, Printer } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PhotoSession, AnalysisResult, VisualizeResponse, CustomerDisplaySection } from "@/types"
 import type { CostBreakdown } from "@/lib/gemini/pricing"
@@ -49,6 +51,7 @@ export default function ResultPage() {
   const [currentSection, setCurrentSection] = useState<CustomerDisplaySection>("overview")
   const [copied, setCopied] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [showPrintDialog, setShowPrintDialog] = useState(false)
 
   const updateRemoteSection = useCallback(async (section: CustomerDisplaySection) => {
     if (!sessionCode) return
@@ -269,17 +272,20 @@ export default function ResultPage() {
 
   if (loadingState === "loading" || loadingState === "analyzing" || loadingState === "visualizing") {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
-        <Loader2 className="w-12 h-12 text-accent animate-spin mb-4" />
-        <p className="text-accent font-bold tracking-widest animate-pulse text-center">
-          {loadingState === "loading" && "LOADING SESSION..."}
-          {loadingState === "analyzing" && "ANALYZING GEOMETRY..."}
-          {loadingState === "visualizing" && "GENERATING HAIRSTYLE..."}
-        </p>
-        <p className="text-white/60 text-sm mt-2 text-center">{statusMessage}</p>
-        {debugInfo && (
-          <p className="text-white/40 text-xs mt-1 font-mono">{debugInfo}</p>
-        )}
+      <div className="relative">
+        <ResultPageSkeleton />
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+          <Loader2 className="w-12 h-12 text-accent animate-spin mb-4" />
+          <p className="text-accent font-bold tracking-widest animate-pulse text-center">
+            {loadingState === "loading" && "LOADING SESSION..."}
+            {loadingState === "analyzing" && "ANALYZING GEOMETRY..."}
+            {loadingState === "visualizing" && "GENERATING HAIRSTYLE..."}
+          </p>
+          <p className="text-white/60 text-sm mt-2 text-center">{statusMessage}</p>
+          {debugInfo && (
+            <p className="text-white/40 text-xs mt-1 font-mono">{debugInfo}</p>
+          )}
+        </div>
       </div>
     )
   }
@@ -514,10 +520,28 @@ ${bi.styling.applicationSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
       )}
 
       <div className="fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur border-t border-white/10 p-4 z-40">
-        <Button className="w-full shadow-[0_0_20px_rgba(201,162,39,0.2)]" size="lg">
-          <User className="w-4 h-4 mr-2" /> Save to Client Profile
-        </Button>
+        <div className="flex gap-3 max-w-lg mx-auto">
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="flex-1"
+            onClick={() => setShowPrintDialog(true)}
+          >
+            <Printer className="w-4 h-4 mr-2" /> Cetak Script
+          </Button>
+          <Button className="flex-1 shadow-[0_0_20px_rgba(201,162,39,0.2)]" size="lg">
+            <User className="w-4 h-4 mr-2" /> Save Profile
+          </Button>
+        </div>
       </div>
+
+      {showPrintDialog && analysis && (
+        <PrintBarberScript
+          recommendation={primaryRec}
+          analysis={analysis.geometricAnalysis}
+          onClose={() => setShowPrintDialog(false)}
+        />
+      )}
     </div>
   )
 }
